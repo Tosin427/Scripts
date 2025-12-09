@@ -1,0 +1,7 @@
+Create CSV File of Users to onBoard
+
+UserPrincipalName,DisplayName,GivenName,Surname,JobTitle,Department,UsageLocation,Password,GroupObjectIds
+j.smith@tenant.com,John Smith,John,Smith,Accountant,Finance,AU,,<groupId1>;<groupId2>
+a.brown@tenant.com,Amy Brown,Amy,Brown,Receptionist,Admin,AU,,<groupId1>
+
+
