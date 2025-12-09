@@ -1,0 +1,10 @@
+Microsoft removed the 'BypassNRO.cmd'  script from Windows 11 preview builds, which allowed users to bypass the Microsoft Account requirement when installing the operating system.
+Try the below new method.
+When installing Windows 11 and you reach the screen asking, "Let's connect you to a network," you can use the Shift+F10 keyboard combination to open a Windows command prompt.
+At this prompt, type "start ms-cxh:localonly" and press Enter on your keyboard to open a "Microsoft account" window where you can create a new local user for the Windows 11
+
+
+
+
+-----Shift+F10 keyboard combination to open a Windows command prompt
+-----type "start ms-cxh:localonly"
