@@ -5,3 +5,100 @@ j.smith@tenant.com,John Smith,John,Smith,Accountant,Finance,AU,,<groupId1>;<grou
 a.brown@tenant.com,Amy Brown,Amy,Brown,Receptionist,Admin,AU,,<groupId1>
 
 
+Password can be left blank → script will auto-generate.
+
+GroupObjectIds = Entra group object IDs, separated by ;.
+
+
+
+#Requires -Version 5.1
+#Requires -Modules Microsoft.Graph
+
+param(
+    [Parameter(Mandatory = $true)]
+    [string]$CsvPath
+)
+
+# Install once if needed:
+# Install-Module Microsoft.Graph -Scope AllUsers
+
+Import-Module Microsoft.Graph.Users
+Import-Module Microsoft.Graph.Groups
+
+# Connect with sufficient permissions
+Connect-MgGraph -Scopes "User.ReadWrite.All","Group.ReadWrite.All"
+
+$users = Import-Csv -Path $CsvPath
+
+foreach ($u in $users) {
+
+    # Generate password if not supplied in CSV
+    $passwordPlain = if ($u.Password -and $u.Password.Trim()) {
+        $u.Password.Trim()
+    } else {
+        # 12-char random + a1! to satisfy most complexity policies
+        ([System.Guid]::NewGuid().ToString("N").Substring(0,12) + "a1!")
+    }
+
+    $passwordProfile = @{
+        Password                      = $passwordPlain
+        ForceChangePasswordNextSignIn = $true
+    }
+
+    $upnLocal = $u.UserPrincipalName.Split("@")[0]
+
+    Write-Host "Creating user $($u.UserPrincipalName) ..." -ForegroundColor Cyan
+
+    $newUser = New-MgUser `
+        -AccountEnabled:$true `
+        -DisplayName $u.DisplayName `
+        -MailNickname $upnLocal `
+        -UserPrincipalName $u.UserPrincipalName `
+        -GivenName $u.GivenName `
+        -Surname $u.Surname `
+        -JobTitle $u.JobTitle `
+        -Department $u.Department `
+        -UsageLocation $u.UsageLocation `
+        -PasswordProfile $passwordProfile
+
+    Write-Host "  -> Created: $($newUser.Id)" -ForegroundColor Green
+    Write-Host "  -> Temp password: $passwordPlain" -ForegroundColor Yellow
+
+    # Add to groups
+    if ($u.GroupObjectIds -and $u.GroupObjectIds.Trim()) {
+        $groupIds = $u.GroupObjectIds.Split(";", [System.StringSplitOptions]::RemoveEmptyEntries)
+
+        foreach ($gid in $groupIds) {
+            try {
+                Write-Host "  -> Adding to group $gid ..." -NoNewline
+                New-MgGroupMember -GroupId $gid -DirectoryObjectId $newUser.Id -ErrorAction Stop
+                Write-Host " OK" -ForegroundColor Green
+            }
+            catch {
+                Write-Host " FAILED: $($_.Exception.Message)" -ForegroundColor Red
+            }
+        }
+    }
+
+    Write-Host ""
+}
+
+
+### Run script to onBoard
+.\New-M365Users.ps1 -CsvPath "C:\Scripts\NewUsers.csv"
+
+
+
+Requirements for it to run:
+
+You are in the same directory as the script, or you specify the full path:
+C:\Scripts\New-M365Users.ps1 -CsvPath "C:\Scripts\NewUsers.csv"
+
+Execution policy allows script execution:
+Set-ExecutionPolicy RemoteSigned -Scope Process
+
+The script file name matches exactly.
+
+If all the above are true, the command runs the script.
+
+
